@@ -38,3 +38,5 @@ default-prompt-inject.md
 *.dshpurge.bak
 *.copytmp
 *.tmp
+# 回归测试是交付物的一部分，不能被上面的 scripts/test-*.mjs 规则挡住
+!scripts/test-official-update-rollback.mjs

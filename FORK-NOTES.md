@@ -65,11 +65,51 @@ node scripts/check-40-and-hostfs.mjs
 
 ```
 lib/core.js                                            # 修复 1 + 诊断增强（promptDropReport / hostsUnwritten）
-lib/extract-asar.js                                    # 修复 2
+lib/extract-asar.js                                    # 修复 2 + 隔离目录清理校验
+lib/official-update.wscript                            # 修复 4（更新交接回滚）
+lib/official-update.js                                 # 修复 4（成功判定 / 路径校验 / 安全清理）
+lib/index.js                                           # 启动时清理报告写日志
 presets/redteam/agent.cordis.yml                        # 修复 3
-scripts/check-40-and-hostfs.mjs                        # 新增回归测试
+scripts/check-40-and-hostfs.mjs                        # 回归测试 1
+scripts/test-official-update-rollback.mjs              # 回归测试 2（更新交接 / 回滚）
 ```
 
 `promptDropReport(aiBase)` 是新增的诊断导出：逐项返回 `identityMarked / injectMarked / identityLeft /
 dropsInject / isPromptModule` 和 `reason`，门禁失败时会连宿主路径、`#40` 状态一起返回，
 不再只丢一句「没写进全部宿主」。
+
+---
+
+## 修复 4 — 更新交接失败回滚会穿过 junction 删掉真实 runtime
+
+**缺陷（已复现）**：`lib/official-update.wscript` 的失败回滚分支里有
+
+```js
+fso.DeleteFolder(appDir, true);   // appDir = resources\app
+```
+
+WSH 的 `FileSystemObject.DeleteFolder` 递归删除会**穿过目录链接**。官方桌面安装把
+`resources\app\runtime` 做成指向 `resources\runtime` 的 junction，于是这一删把真实 runtime
+的内容一起抹掉，只留下空目录 —— 表现就是 office/SKILL.md 等运行资源丢失。
+同一结构交给 Node 的 `fs.rmSync` 时只删链接本身，目标不受影响（两种行为都有回归用例固定）。
+
+**修法**
+
+1. `official-update.wscript`：回滚时不再删除重建出来的 `resources\app`，改为改名隔离到
+   `app.dshpurge-failed-<ts>`；改名失败就记日志并保留现场，绝不递归删除。
+   恢复旧 app 时优先用规范名 `app.dshpurge-prev`（升级前那一份），避免把并发 helper 重建的
+   目录当成旧版本恢复。
+2. `official-update.js`：新增 `isCleanableStaleDir()`，只允许清理「resources 的直接子项 + 名字匹配
+   `app.dshpurge-(prev|failed)(-<ts>)?` + 本身不是链接」的目录；`clearStaleExtractedApps()` 改为
+   `fs.rmSync` 并返回 `{removed, rejected, errors}`，被拒绝的条目原样保留。
+3. `extract-asar.js`：`restoreExtractedDir()` 清隔离目录前复核同级路径、目录名与链接属性。
+4. 成功判定：不再用「EXE/ASAR 大小或时间戳变了」当成功依据（安装器可能产出字节相同的文件，
+   旧规则会因此触发第二次安装 + 假回滚）。现在只认「安装器退出码 0 + 必需资源存在」，
+   大小变化仅作诊断字段；非零退出码不重试。
+5. 交接日志新增 `decide` / `decide-final` / `isolated-app` / `restore-app-skipped` 等记录，
+   含退出码、资源校验结论、隔离与恢复路径、最终决定；不写凭据或对话内容。
+
+**回归**：`node scripts/test-official-update-rollback.mjs` — 34 项，7 个场景（正常更新、junction 回滚、
+FSO 穿链复现与 Node 对照、大小不变判成功、非零退出码/资源不完整、隔离清理与重复执行、越界与顶层
+链接拒绝、重命名失败保留现场），全部 PASS。全部夹具在临时目录内，fake exe / fake installer，
+不碰真实安装目录。

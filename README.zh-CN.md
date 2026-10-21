@@ -179,18 +179,18 @@ Harness 不只是把问题交给模型。它还会在运行时改提示词、审
 **Web（官方 `dsh web`）**
 
 ```sh
-dsh plugin --profile web add dsh-purge
+dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
 ```
 
 **桌面端（官方 EXE）**
 
 ```sh
-dsh plugin --profile desktop add dsh-purge
+dsh plugin --profile desktop add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
 ```
 
-当前目录已经是本仓库时，把包名换成 `add .`。`dsh` 不在 PATH 时走 [手动安装](#manual)。registry 上不去：同一个 `--profile`，把目标换成 `https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz`。
+两条命令装的是**本仓库这个 fork**，不是同名上游 npm 包：目标直接写 tarball，才带上 0.2.x 兼容补丁。当前目录已经是本仓库时，把同一个 `--profile` 换成 `add .`。`dsh` 不在 PATH 时走 [手动安装](#manual)。
 
-[插件市场](https://dsh-plugin.org/plugins/yujunzhixue/dsh-purge) 一键安装会按本仓库反查 npm，命中后装 `dsh-purge`。目录页可能仍写 `github:` —— 按钮若退回 git，用上表命令。
+[插件市场](https://dsh-plugin.org/plugins/yujunzhixue/dsh-purge) 的条目属于上游，装的是上游 npm 包 —— 那份不带本 fork 的 0.2.x 修复。要用这份，走上表的 tarball 命令，或用下面的按钮（已指向本仓库）。
 
 桌面客户端也可以点按钮（`dsh://` 唤起）：
 
@@ -225,18 +225,18 @@ Web 的控件只动 Web，桌面端的只动桌面应用。不要在一个宿主
 
 安装 DeepSeek Harness 插件 `dsh-purge`，Web 和官方桌面端都要装。不要全盘搜索，不要读或改其它文件，不要应用设置，也不要重启应用。
 
-`dsh` 不在 PATH 就告诉用户后停止。当前目录已是本仓库时，把下面两条里的包名都换成 `.`。npm registry 上不去，把包名换成 `https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz`。某个 profile 不存在就跳过那一条，另一条照装。
+`dsh` 不在 PATH 就告诉用户后停止。下面两条用的是本仓库 fork 的 tarball，不是上游 npm 包名。当前目录已是本仓库时，把两条里的 URL 都换成 `.`。某个 profile 不存在就跳过那一条，另一条照装。
 
 **Web 端（官方 `dsh web`）**
 
 ```sh
-dsh plugin --profile web add dsh-purge
+dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
 ```
 
 **桌面端（官方 EXE）**
 
 ```sh
-dsh plugin --profile desktop add dsh-purge
+dsh plugin --profile desktop add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
 ```
 
 命令结束后，提醒用户：Web 完全退出并重启 `dsh web`；桌面端退出托盘再打开 EXE。各自点会话标题旁的 **dsh-purge**，在「清洗」里点「应用」。然后停止。
@@ -591,7 +591,7 @@ flowchart LR
 - 改动范围是本机 `@deepseek-ai/*` 包里的渲染文案、默认策略和执行逻辑，以及用户目录下的覆盖文件与规则集。
 - 升级后原文对不上会显示跳过，这次应用仍算完成，不会乱改。
 - 不改动非 `@deepseek-ai` 的第三方插件源仓库（启动时的 CMD 无感会**尽力**修补已装的 doctor / market / 梁神 / mnemon，属运行时补丁）。
-- 安装走 npm 包名 `dsh-purge`：`dsh plugin --profile web add dsh-purge` 或 `dsh plugin --profile desktop add dsh-purge`。当前目录已是本仓库时 `add .`。registry 上不去再加 master.tar.gz。插件市场一键安装走同一个 npm 包。
+- 安装本 fork：`dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz`（`--profile desktop` 同理）。当前目录已是本仓库时用 `add .`。
 
 ---
 

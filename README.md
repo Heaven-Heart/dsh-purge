@@ -179,18 +179,18 @@ Web and the official desktop EXE are the two maintained hosts. **Install both. A
 **Web (official `dsh web`)**
 
 ```sh
-dsh plugin --profile web add dsh-purge
+dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
 ```
 
 **Desktop (official EXE)**
 
 ```sh
-dsh plugin --profile desktop add dsh-purge
+dsh plugin --profile desktop add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
 ```
 
-If this directory is already a clone, use `add .` instead of the package name. If `dsh` is not on PATH, use [Manual install](#manual). Registry blocked: add `https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz` with the same `--profile`.
+Both commands install **this repository's fork**, not the upstream npm package of the same name: the target is the tarball above, so the 0.2.x compatibility patches are included. If this directory is already a clone, use `add .` instead with the same `--profile`. If `dsh` is not on PATH, use [Manual install](#manual).
 
-Hub one-click on [dsh-plugin.org](https://dsh-plugin.org/plugins/yujunzhixue/dsh-purge) searches npm for this repository and installs `dsh-purge`. The catalog line may still show `github:` — use the command above if the button falls back to git.
+The [dsh-plugin.org](https://dsh-plugin.org/plugins/yujunzhixue/dsh-purge) entry belongs to upstream and installs the upstream npm package — that build does not carry this fork's 0.2.x fixes. Use the tarball command above (or the button below, which points at this repo).
 
 For the desktop client you can also click the button (`dsh://` deep link):
 
@@ -225,18 +225,18 @@ Paste the block below to a local assistant. It should only run the install comma
 
 Install the DeepSeek Harness plugin `dsh-purge` into both the Web profile and the official desktop profile. Do not scan the whole disk, do not read or edit other files, do not apply settings, and do not restart the app.
 
-If `dsh` is not on PATH, tell the user and stop. If this directory is already a clone, use `.` instead of the package name in both commands. If the npm registry is blocked, use `https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz`. If one profile is missing, skip that command and still install the other.
+If `dsh` is not on PATH, tell the user and stop. Both commands take the tarball URL of this repository's fork, not the upstream npm package name. If this directory is already a clone, use `.` instead of the URL in both commands. If one profile is missing, skip that command and still install the other.
 
 **Web (official `dsh web`)**
 
 ```sh
-dsh plugin --profile web add dsh-purge
+dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
 ```
 
 **Desktop (official EXE)**
 
 ```sh
-dsh plugin --profile desktop add dsh-purge
+dsh plugin --profile desktop add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
 ```
 
 After the commands finish, tell the user to fully quit and restart `dsh web`, and to quit the desktop tray then reopen the EXE. On each host, open **dsh-purge** beside the session title and **Apply** on **Clean**. Then stop.
@@ -582,7 +582,7 @@ What changed, and the zip, are on [Releases](https://github.com/realMisakaMikoto
 - Scope is rendered copy, defaults, and runtime logic inside local `@deepseek-ai/*` packages, plus override files and rule sets under the harness home.
 - After an upgrade, unmatched originals show as skipped. Apply still completes, and those files are left unchanged.
 - Third-party plugin *source repos* outside `@deepseek-ai` are left alone (CMD silence may **best-effort** patch installed doctor / market / liangshen / mnemon at runtime).
-- Install the npm package `dsh-purge`: `dsh plugin --profile web add dsh-purge` or `dsh plugin --profile desktop add dsh-purge`. From this repo, `add .`. If the registry is blocked, add the master.tar.gz URL instead. Hub one-click uses the same npm package.
+- Install this fork: `dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz` (same for `--profile desktop`). From this repo, `add .`.
 
 ---
 
