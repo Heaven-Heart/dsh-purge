@@ -2,7 +2,8 @@
 
 ## 中文
 
-- 版本 **1.1.72**。适配 **DSH 0.2.1-rc.1 / 0.2.0-rc.2**（官方桌面 EXE 与官方 `dsh web`）。
+- 版本 **1.1.72**。适配 **DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2**（官方桌面 EXE 与官方 `dsh web`）。
+- 已在 **DSH 0.2.1-rc.2** 实测：66 个补丁 applied、0 pending，#40 / #55 / #25 命中，`promptDropReport` 正常，红队预设 `registered`，两个回归测试全 PASS。
 - 修复 **#40 complete prompt keep-inject 在 0.2.0-rc.2 收尾块上永不命中**：官方在 `sections/contexts` 前多插了 `requiredContexts`，旧 7 个 pattern 全部 `skipped`（不是 `pending`）→ 标记写不上 → 重启门禁永久报「清洗没有写进全部宿主，已取消重启」。新增 rc.2 专用 variant + 末位兜底 pattern，两条都幂等。
 - 修复 **`hostFs` 缺 `closeSync` / `readSync`**：`backupAll()` 的占位 fd 关不掉 → 每个文件 `rename` 都 `EPERM` → 全量备份 0 条、`revert` 没有原件；同一缺口让 `isTextShim()` 每次抛错 → `dsh.ps1` / `dsh` 永不注入。`HOST_SYNC` 补齐 `closeSync` / `readSync` / `writeSync` / `fsyncSync` / `fstatSync` / `accessSync`。
 - 修复 **红队 preset 在 0.2 注册即 broken**：`dsh-tool-subagent` 已弃用 `toolFilter` / `persona`，preset 注册后 `phase: registered-broken`，模式下拉被过滤、会话回落 `standard`（表现为「红队模式消失」）。删掉 `toolFilter` 块、保留 `maxDepth: 1`。
@@ -12,7 +13,8 @@
 
 ## English
 
-- **1.1.72**. Targets **DSH 0.2.1-rc.1 / 0.2.0-rc.2** (official desktop EXE and official `dsh web`).
+- **1.1.72**. Targets **DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2** (official desktop EXE and official `dsh web`).
+- Verified on **DSH 0.2.1-rc.2**: 66 patches applied, 0 pending, #40 / #55 / #25 matched, `promptDropReport` clean, redteam preset `registered`, both regression suites green.
 - Fixed **#40 complete-prompt keep-inject never matching the 0.2.0-rc.2 tail block**: upstream now inserts `requiredContexts` before `sections/contexts`, so all 7 patterns reported `skipped` (not `pending`), the marker was never written and the restart gate kept refusing with "clean did not reach every host". Added an rc.2-specific variant plus a trailing fallback pattern; both are idempotent.
 - Fixed **`hostFs` missing `closeSync` / `readSync`**: `backupAll()` could not close its placeholder fd, so every `rename` returned `EPERM` — zero backups and nothing for `revert` to restore; the same gap made `isTextShim()` throw, so `dsh.ps1` / `dsh` were never injected. `HOST_SYNC` now covers `closeSync` / `readSync` / `writeSync` / `fsyncSync` / `fstatSync` / `accessSync`.
 - Fixed **the redteam preset registering as broken on 0.2**: `dsh-tool-subagent` dropped `toolFilter` / `persona`, so the preset came back `registered-broken`, the picker filtered it out and sessions fell back to `standard` (the "redteam mode is gone" symptom). Removed `toolFilter`, kept `maxDepth: 1`.
