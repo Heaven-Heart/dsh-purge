@@ -1,3 +1,25 @@
+# 1.1.72
+
+## 中文
+
+- 版本 **1.1.72**。适配 **DSH 0.2.1-rc.1 / 0.2.0-rc.2**（官方桌面 EXE 与官方 `dsh web`）。
+- 修复 **#40 complete prompt keep-inject 在 0.2.0-rc.2 收尾块上永不命中**：官方在 `sections/contexts` 前多插了 `requiredContexts`，旧 7 个 pattern 全部 `skipped`（不是 `pending`）→ 标记写不上 → 重启门禁永久报「清洗没有写进全部宿主，已取消重启」。新增 rc.2 专用 variant + 末位兜底 pattern，两条都幂等。
+- 修复 **`hostFs` 缺 `closeSync` / `readSync`**：`backupAll()` 的占位 fd 关不掉 → 每个文件 `rename` 都 `EPERM` → 全量备份 0 条、`revert` 没有原件；同一缺口让 `isTextShim()` 每次抛错 → `dsh.ps1` / `dsh` 永不注入。`HOST_SYNC` 补齐 `closeSync` / `readSync` / `writeSync` / `fsyncSync` / `fstatSync` / `accessSync`。
+- 修复 **红队 preset 在 0.2 注册即 broken**：`dsh-tool-subagent` 已弃用 `toolFilter` / `persona`，preset 注册后 `phase: registered-broken`，模式下拉被过滤、会话回落 `standard`（表现为「红队模式消失」）。删掉 `toolFilter` 块、保留 `maxDepth: 1`。
+- 修复 **更新交接失败回滚穿过 junction 删真实 runtime**：`official-update.wscript` 原先对重建出来的 `resources\app` 调 `fso.DeleteFolder(app, true)`，WSH 会穿过 `app\runtime -> resources\runtime` 的目录链接，把 office/SKILL.md 等真实运行资源一起删掉。改为改名隔离到 `app.dshpurge-failed-<ts>`，改名失败保留现场；清理改由 Node 的 `fs.rmSync` + 路径/目录名/链接校验完成。
+- 更新成功判定改为「安装器退出码 0 + 必需资源存在」，EXE/ASAR 大小与时间戳只作诊断；非零退出码不再触发第二次安装与假回滚。交接日志补 `decide` / `isolated-app` / `restore-app-skipped` 等记录。
+- 安装命令改为本仓库 tarball（不再用同名 npm 包名，那会装到上游、不带这些修复）。
+
+## English
+
+- **1.1.72**. Targets **DSH 0.2.1-rc.1 / 0.2.0-rc.2** (official desktop EXE and official `dsh web`).
+- Fixed **#40 complete-prompt keep-inject never matching the 0.2.0-rc.2 tail block**: upstream now inserts `requiredContexts` before `sections/contexts`, so all 7 patterns reported `skipped` (not `pending`), the marker was never written and the restart gate kept refusing with "clean did not reach every host". Added an rc.2-specific variant plus a trailing fallback pattern; both are idempotent.
+- Fixed **`hostFs` missing `closeSync` / `readSync`**: `backupAll()` could not close its placeholder fd, so every `rename` returned `EPERM` — zero backups and nothing for `revert` to restore; the same gap made `isTextShim()` throw, so `dsh.ps1` / `dsh` were never injected. `HOST_SYNC` now covers `closeSync` / `readSync` / `writeSync` / `fsyncSync` / `fstatSync` / `accessSync`.
+- Fixed **the redteam preset registering as broken on 0.2**: `dsh-tool-subagent` dropped `toolFilter` / `persona`, so the preset came back `registered-broken`, the picker filtered it out and sessions fell back to `standard` (the "redteam mode is gone" symptom). Removed `toolFilter`, kept `maxDepth: 1`.
+- Fixed **update-handoff rollback deleting the real runtime through a junction**: `official-update.wscript` called `fso.DeleteFolder(app, true)` on the rebuilt `resources\app`; WSH follows the `app\runtime -> resources\runtime` directory link and wipes real runtime content (office/SKILL.md). It now renames the directory into `app.dshpurge-failed-<ts>` and keeps the scene when the rename fails; cleanup moved to Node `fs.rmSync` with path/name/link validation.
+- Update success is decided by "installer exit code 0 + required resources present"; EXE/ASAR size and timestamps are diagnostics only, and a non-zero exit no longer triggers a second install plus bogus rollback. Handoff log gained `decide` / `isolated-app` / `restore-app-skipped` records.
+- Install commands now use this repository's tarball instead of the same-named npm package (that one is upstream and lacks these fixes).
+
 # 1.1.71
 
 ## 中文
