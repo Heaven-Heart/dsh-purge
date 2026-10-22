@@ -5,6 +5,32 @@ import * as rules from "../lib/rules.js";
 
 const args = process.argv.slice(2);
 
+function argValue(name) {
+  const eq = args.find((a) => a.startsWith(name + "="));
+  if (eq) return eq.slice(name.length + 1);
+  const i = args.indexOf(name);
+  if (i >= 0 && args[i + 1] && !args[i + 1].startsWith("--")) return args[i + 1];
+  return "";
+}
+
+function printHosts(hosts) {
+  if (!hosts || hosts.length <= 1) return;
+  const out = ["", `  宿主清单 / hosts (${hosts.length})`];
+  for (const h of hosts) {
+    const flags = [];
+    if (h.is_primary) flags.push("primary");
+    if (h.running_app) flags.push("当前桌面应用 / running app");
+    if (h.desktop_install) flags.push("desktop");
+    out.push(`    · ${h.ai_base}`);
+    out.push(
+      `      ${h.applied}/${h.total} 已清洗, ${h.pending} 待清洗, ${h.na} 不适用` +
+        (flags.length ? `  [${flags.join(", ")}]` : "") +
+        (h.has_backup ? "  backup=yes" : ""),
+    );
+  }
+  return out.join("\n");
+}
+
 function printStatus(state) {
   const out = [];
   out.push("dsh-purge 状态 / Status");
@@ -24,32 +50,47 @@ function printStatus(state) {
   out.push(`  注入文件       ${state.override_path}`);
   out.push(`  注入状态       ${state.override_status}`);
   out.push("");
-  out.push(`  补丁 ${state.patches_applied}/${core.ALL_PATCHES.length} 已清洗, ${state.patches_pending} 待清洗`);
+  out.push(`  补丁 ${state.patches_applied}/${state.patches_total || core.ALL_PATCHES.length} 已清洗, ${state.patches_pending} 待清洗, ${state.patches_na} 不适用, ${state.patches_skipped} 其他`);
   for (const p of core.ALL_PATCHES) {
-    const s = state.patch_status[p.id];
+    const s = state.patch_status[p.id] || "-";
     const mark = s === "applied" ? "✓" : s === "pending" ? "✗" : "·";
     out.push(`    ${mark} [#${String(p.id).padEnd(2)}] ${p.name.padEnd(30)} ${p.layer}/${p.layer_en} — ${s}`);
   }
   out.push("");
   out.push(`  shim: dsh.cmd=${state.shim_cmd}  dsh.ps1=${state.shim_ps1}  dsh=${state.shim_bin}`);
+  const hosts = printHosts(state.hosts);
+  if (hosts) out.push(hosts);
   return out.join("\n");
 }
 
 async function main() {
   const mode = args.find((a) => ["--apply", "--revert", "--uninstall", "--status", "--edit", "--help"].includes(a));
+  const wantBase = argValue("--base");
+  const wantSurface = argValue("--surface");
 
   if (mode === "--help" || args.includes("-h")) {
     console.log(`dsh-purge 用法:
-  dsh-purge --status     显示状态
-  dsh-purge --apply      应用全部清洗（提示词+代码+shim+override）
-  dsh-purge --revert     回滚还原
-  dsh-purge --uninstall  卸载插件（已应用则先还原）
-  dsh-purge --edit       编辑注入文件 prompt-inject.md
-  dsh-purge --help       帮助`);
+  dsh-purge --status            显示状态（含多宿主清单）
+  dsh-purge --status --base DIR  只报告指定 @deepseek-ai 目录
+  dsh-purge --surface desktop   强制按桌面宿主解析（默认自动判断）
+  dsh-purge --apply             应用全部清洗（提示词+代码+shim+override）
+  dsh-purge --revert            回滚还原
+  dsh-purge --uninstall         卸载插件（已应用则先还原）
+  dsh-purge --edit              编辑注入文件 prompt-inject.md
+  dsh-purge --help              帮助`);
     return;
   }
 
-  const state = await core.gatherState();
+  // CLI 在 node.exe 里跑，surface 永远是 web；桌面树要靠 discover 找。
+  if (wantSurface) process.env.DSH_SURFACE = wantSurface;
+  if (wantBase) process.env.DSH_BASE = wantBase;
+
+  const state = await core.gatherState({ base: wantBase, hosts: true, discover: true });
+
+  if (args.includes("--json")) {
+    console.log(JSON.stringify(state, null, 2));
+    return;
+  }
   console.log(printStatus(state));
   console.log("");
 
