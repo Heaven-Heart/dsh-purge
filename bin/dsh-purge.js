@@ -2,6 +2,8 @@
 
 import * as core from "../lib/core.js";
 import * as rules from "../lib/rules.js";
+import fs from "node:fs";
+import path from "node:path";
 
 const args = process.argv.slice(2);
 
@@ -64,7 +66,7 @@ function printStatus(state) {
 }
 
 async function main() {
-  const mode = args.find((a) => ["--apply", "--revert", "--uninstall", "--status", "--edit", "--help"].includes(a));
+  const mode = args.find((a) => ["--apply", "--revert", "--uninstall", "--status", "--edit", "--doctor", "--help"].includes(a));
   const wantBase = argValue("--base");
   const wantSurface = argValue("--surface");
 
@@ -73,6 +75,9 @@ async function main() {
   dsh-purge --status            显示状态（含多宿主清单）
   dsh-purge --status --base DIR  只报告指定 @deepseek-ai 目录
   dsh-purge --surface desktop   强制按桌面宿主解析（默认自动判断）
+  dsh-purge --doctor            体检：宿主/补丁/备份/shim/封包，失败退出码 1
+  dsh-purge --doctor --repo DIR 额外校验安装目录是否仍指向该工作副本
+  dsh-purge --doctor --save-baseline  把当前 applied 数记成基线（供升级比对）
   dsh-purge --apply             应用全部清洗（提示词+代码+shim+override）
   dsh-purge --revert            回滚还原
   dsh-purge --uninstall         卸载插件（已应用则先还原）
@@ -86,6 +91,46 @@ async function main() {
   if (wantBase) process.env.DSH_BASE = wantBase;
 
   const state = await core.gatherState({ base: wantBase, hosts: true, discover: true });
+
+  if (mode === "--doctor") {
+    const doctor = await import("../lib/doctor.js");
+    const repo = argValue("--repo");
+    const wantJson = args.includes("--json");
+    const linkPaths = [];
+    if (repo) {
+      const pluginsDir = path.join(state.dsh_home, "plugins", "dsh-purge");
+      if (fs.existsSync(pluginsDir)) linkPaths.push(pluginsDir);
+      const profilesDir = path.join(state.dsh_home, "profiles");
+      try {
+        for (const name of fs.readdirSync(profilesDir)) {
+          const cand = path.join(profilesDir, name, "node_modules", "dsh-purge");
+          if (fs.existsSync(cand)) linkPaths.push(cand);
+        }
+      } catch {}
+    }
+    const baseline = doctor.readBaseline(state.dsh_home);
+    const result = doctor.runChecks({ state, repo, linkPaths, baseline });
+    if (args.includes("--save-baseline")) {
+      const fp = doctor.writeBaseline(state.dsh_home, {
+        ai_base: state.ai_base,
+        surface: state.surface,
+        applied: state.patches_applied,
+        total: state.patches_total,
+      });
+      console.log(`  ✓ 基线已写入 ${fp}`);
+    }
+    if (wantJson) {
+      console.log(JSON.stringify(result, null, 2));
+    } else {
+      console.log(`dsh-purge 体检 / doctor`);
+      console.log(`  宿主 ${state.surface}  root=${state.ai_base || "(未定位)"}`);
+      for (const r of result.rows) console.log(`  ${r.ok ? "✓" : "✗"} ${r.id.padEnd(24)} ${r.detail}`);
+      console.log("");
+      console.log(result.ok ? "  结论：全部通过 / all checks passed" : "  结论：有项目未通过 / FAILED");
+    }
+    if (!result.ok) process.exitCode = 1;
+    return;
+  }
 
   if (args.includes("--json")) {
     console.log(JSON.stringify(state, null, 2));
