@@ -27,7 +27,9 @@ function git(dir, ...args) {
 function copyPlugin(dest) {
   fs.mkdirSync(dest, { recursive: true });
   fs.cpSync(path.join(root, "lib"), path.join(dest, "lib"), { recursive: true });
+  fs.cpSync(path.join(root, "presets"), path.join(dest, "presets"), { recursive: true });
   fs.copyFileSync(path.join(root, "package.json"), path.join(dest, "package.json"));
+  fs.copyFileSync(path.join(root, "NOTICE"), path.join(dest, "NOTICE"));
   fs.writeFileSync(path.join(dest, "lib", "reapply-cli.js"),
     'console.log(JSON.stringify({ok:false,error:"fixture: skip host mutation"}));\n');
 }
@@ -47,6 +49,8 @@ try {
   git(live, "remote", "set-url", "origin", originalOrigin);
   git(live, "config", `url.${source.replace(/\\/g, "/")}.insteadOf`, gitUrl);
   fs.writeFileSync(path.join(source, "lib", "update-fixture.txt"), "community");
+  fs.appendFileSync(path.join(source, "presets", "redteam", "preset.yml"), "\n# community update fixture\n");
+  fs.appendFileSync(path.join(source, "NOTICE"), "\nCommunity update fixture\n");
   git(source, "add", ".");
   git(source, "commit", "-m", "Community update fixture");
   git(source, "tag", "v1.1.73");
@@ -116,6 +120,8 @@ try {
   assert.equal(updatedArchive.via, "zip");
   for (const dir of [archive, installed]) {
     assert.equal(fs.readFileSync(path.join(dir, "lib", "update-fixture.txt"), "utf8"), "community");
+    assert.ok(fs.readFileSync(path.join(dir, "presets", "redteam", "preset.yml"), "utf8").includes("# community update fixture"));
+    assert.ok(fs.readFileSync(path.join(dir, "NOTICE"), "utf8").includes("Community update fixture"));
   }
   const spec = JSON.parse(fs.readFileSync(path.join(profile, "package.json"), "utf8")).dependencies["dsh-purge"];
   assert.equal(spec, `https://codeload.github.com/${repo}/tar.gz/refs/heads/master`);

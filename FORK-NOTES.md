@@ -121,3 +121,14 @@ FSO 穿链复现与 Node 对照、大小不变判成功、非零退出码/资源
 - The Windows update rollback and runtime/junction protections remain unchanged.
 
 Validation: `node scripts/check-community-update.mjs` exercises version metadata, Git updates with a different origin, pinned tags, archive installs, and profile dependency URLs using temporary local repositories and mocked HTTP responses.
+
+## Selected upstream evidence and rewind features
+
+Source: YuJunZhiXue/dsh-purge 1.1.74, commit `5a9b8e14856138814a2139a0105481e1dcdaece4`.
+
+- Import the evidence ledger, eight evidence/unknown tools, and the corresponding preset instructions.
+- Import the upstream rewind implementation: step/turn boundaries, new-session fork/create, source archival, and cancellation/archive of the selected turn's subagents. Add the conversation client dependency required to select the new session.
+- Keep this community build's updater, target-gate removal, knowledge base, bundled skills, and Windows rollback protections.
+- Preserve upstream attribution in `NOTICE` and `docs/upstream-dsh-purge-LICENSE`; the existing project license metadata is unchanged.
+
+Validation: `node scripts/check-evidence-rewind.mjs` covers ten evidence/rewind groups with in-memory SQLite and a fixture session controller. Community update checks also verify preset and NOTICE delivery in archive installs.
