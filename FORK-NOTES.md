@@ -113,3 +113,11 @@ WSH 的 `FileSystemObject.DeleteFolder` 递归删除会**穿过目录链接**。
 FSO 穿链复现与 Node 对照、大小不变判成功、非零退出码/资源不完整、隔离清理与重复执行、越界与顶层
 链接拒绝、重命名失败保留现场），全部 PASS。全部夹具在临时目录内，fake exe / fake installer，
 不碰真实安装目录。
+
+## Community updater and target selection
+
+- Version checks, package downloads, installed profile specs, and Git updates use `realMisakaMikoto/dsh-purge`. Git updates fetch the requested ref directly from this repository and retain the checkout's existing origin.
+- Geographic and bank-domain target gates, the own-server exception list UI, and its API are removed. Existing allowlist files are not modified.
+- The Windows update rollback and runtime/junction protections remain unchanged.
+
+Validation: `node scripts/check-community-update.mjs` exercises version metadata, Git updates with a different origin, pinned tags, archive installs, and profile dependency URLs using temporary local repositories and mocked HTTP responses.
