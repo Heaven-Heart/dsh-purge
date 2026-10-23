@@ -10,6 +10,8 @@ function printStatus(state) {
   out.push("dsh-purge 状态 / Status");
   out.push("  宿主 / surface " + (state.surface || "web"));
   out.push("  DSH_HOME      " + state.dsh_home);
+  out.push("  Activation    " + (state.patches_active ? "active"
+    : state.activation_pending ? "restart required (sealed desktop)" : "not fully applied"));
   if (state.desktop_install) out.push("  桌面安装       " + state.desktop_install);
   if (state.ai_base) {
     out.push("  插件根 / root  " + state.ai_base);

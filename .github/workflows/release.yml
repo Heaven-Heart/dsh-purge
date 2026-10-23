@@ -27,6 +27,7 @@ jobs:
           node --check lib/core.js
           node --check lib/reapply.js
           node --input-type=module -e "import './lib/index.js'"
+          node scripts/check-desktop-activation.mjs
 
       - name: Publish GitHub Release
         env:
