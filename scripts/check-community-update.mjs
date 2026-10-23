@@ -28,7 +28,9 @@ function copyPlugin(dest) {
   fs.mkdirSync(dest, { recursive: true });
   fs.cpSync(path.join(root, "lib"), path.join(dest, "lib"), { recursive: true });
   fs.cpSync(path.join(root, "presets"), path.join(dest, "presets"), { recursive: true });
-  fs.copyFileSync(path.join(root, "package.json"), path.join(dest, "package.json"));
+  const fixturePackage = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  fixturePackage.version = "1.1.72";
+  fs.writeFileSync(path.join(dest, "package.json"), JSON.stringify(fixturePackage, null, 2));
   fs.copyFileSync(path.join(root, "NOTICE"), path.join(dest, "NOTICE"));
   fs.writeFileSync(path.join(dest, "lib", "reapply-cli.js"),
     'console.log(JSON.stringify({ok:false,error:"fixture: skip host mutation"}));\n');
