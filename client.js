@@ -175,6 +175,9 @@ window.__ModuleLoader__.load({ id: "dsh-purge", factory: (require) => {
 			"purge.title": "补丁",
 			"override.title": "提示词",
 			"metric.purged": "已写入",
+			"metric.activationPending": "等待完整重启后生效",
+			"activation.pending": "补丁已写入解包目录，但当前 DSH 仍在使用原始归档。请完成应用并完整重启，之后才会生效。",
+			"metric.lost": "补丁未生效，请重新应用",
 			"metric.purged.skip": "已写入。跳过 {n} 项，本机没有这些文件",
 			"metric.pendingShort": "待处理 {n}",
 			"metric.unmatchedShort": "没对上 {n}",
@@ -510,6 +513,9 @@ window.__ModuleLoader__.load({ id: "dsh-purge", factory: (require) => {
 			"purge.title": "Patches",
 			"override.title": "Prompt",
 			"metric.purged": "Written",
+			"metric.activationPending": "Full restart required to activate",
+			"activation.pending": "Patches are written to the extracted directory, but DSH still uses the original archive. Finish Apply and fully restart DSH to activate them.",
+			"metric.lost": "Patches are inactive; apply them again",
 			"metric.purged.skip": "Written. Skipped {n}; those files are not on this install",
 			"metric.pendingShort": "Pending {n}",
 			"metric.unmatchedShort": "No match {n}",
@@ -1807,7 +1813,8 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 			const hostSurface = hostSurfaceOf(s);
 			const desktopLikely = hostSurface === "desktop" || clientGuessSurface() === "desktop";
 			const sealedReady = !located && desktopLikely && !!(s && (s.asar_still_sealed || s.desktop_exe || s.desktop_install));
-			const patchesLost = !located && !!(s && s.patches_lost);
+			const patchesLost = !!(s && s.patches_lost);
+			const activationPending = !!(s && (s.activation_pending || (located && s.asar_still_sealed)));
 			const tally = located ? tallyPatches(patchRowsOf(s)) : { applied: 0, pending: 0, unmatched: 0, skipped: 0, total: 0 };
 			const total = tally.total;
 			const applied = tally.applied;
@@ -1900,7 +1907,7 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 				s ? h("div", { className: "dshp-metrics" },
 					h("div", { className: "dshp-metric" },
 						h("b", null, located ? (applied + " / " + total) : (patchesLost ? t("metric.lost.count") : (sealedReady ? t("metric.sealed.count") : t("metric.unlocated.count")))),
-						h("span", null, !located ? (patchesLost ? t("metric.lost") : (sealedReady ? t("metric.sealed") : t("metric.unlocated"))) : (metricNotes.length ? metricNotes.join(" · ") : t("metric.purged"))),
+						h("span", null, activationPending ? t("metric.activationPending") : patchesLost ? t("metric.lost") : !located ? (sealedReady ? t("metric.sealed") : t("metric.unlocated")) : (metricNotes.length ? metricNotes.join(" · ") : t("metric.purged"))),
 					),
 					h("div", { className: "dshp-metric" },
 						h("b", { style: { fontSize: 13, fontFamily: "var(--dshp-mono)", fontWeight: 500 } },
@@ -1922,6 +1929,7 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 					h("div", { className: "dshp-metric" }, h("div", { className: "dshp-skel" }), h("div", { className: "dshp-skel", style: { width: "40%" } })),
 				),
 				h("div", { className: "dshp-bar", "aria-hidden": "true" }, h("i", { style: { width: pct + "%" } })),
+				activationPending ? noticeNode({ kind: "error", text: t("activation.pending") }) : null,
 				h(PatchGroups, { state: s }),
 				h(HooksDenySection, { onSaved: loadAll }),
 				h("div", { className: "dshp-row", style: { marginTop: 14 } },

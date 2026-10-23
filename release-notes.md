@@ -1,3 +1,13 @@
+# 1.1.74
+
+- Fix desktop activation reporting: written patches and zero pending items no longer imply that the running host is patched.
+- Report patches_active and activation_pending. A sealed app.asar keeps activation pending until a complete restart switches to the patched extraction.
+- Keep the activation/restart warning visible even when the extracted host directory already exists.
+- Do not mark a sealed host as clean merely because its extracted copy has patch markers.
+- Apply responses now distinguish restart_required from restarting; they no longer claim that an archive swap has already started.
+- Add a temporary desktop fixture regression to the release checks.
+- Preserve community updates, evidence tracking, upstream rewind, knowledge base, skills, and Windows rollback protections.
+
 # 1.1.73
 
 - Community release for DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2.

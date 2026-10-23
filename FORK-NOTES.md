@@ -132,3 +132,9 @@ Source: YuJunZhiXue/dsh-purge 1.1.74, commit `5a9b8e14856138814a2139a0105481e1dc
 - Preserve upstream attribution in `NOTICE` and `docs/upstream-dsh-purge-LICENSE`; the existing project license metadata is unchanged.
 
 Validation: `node scripts/check-evidence-rewind.mjs` covers ten evidence/rewind groups with in-memory SQLite and a fixture session controller. Community update checks also verify preset and NOTICE delivery in archive installs.
+
+## Desktop activation verification (1.1.74)
+
+A patched resources/app directory is not proof that the running desktop has switched away from app.asar. Status now exposes patches_active and activation_pending; the UI keeps the warning visible for a located extraction. Sealed hosts cannot be accepted by hostCleanEnoughToKeep. Apply replies report restart_required without claiming an unstarted restart or swap.
+
+Regression: node scripts/check-desktop-activation.mjs (temporary files only; no live installation writes).
