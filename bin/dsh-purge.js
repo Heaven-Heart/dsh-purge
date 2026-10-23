@@ -2,6 +2,9 @@
 
 import * as core from "../lib/core.js";
 import * as rules from "../lib/rules.js";
+import * as doctor from "../lib/doctor.js";
+import path from "node:path";
+import { createRequire } from "node:module";
 
 const args = process.argv.slice(2);
 
@@ -23,7 +26,7 @@ function printHosts(hosts) {
     if (h.desktop_install) flags.push("desktop");
     out.push(`    · ${h.ai_base}`);
     out.push(
-      `      ${h.applied}/${h.total} 已清洗, ${h.pending} 待清洗, ${h.na} 不适用` +
+      `      ${h.applied}/${h.total} 已清洗, ${h.pending} 待清洗, ${h.na} 不适用, ${h.skipped} skipped` +
         (flags.length ? `  [${flags.join(", ")}]` : "") +
         (h.has_backup ? "  backup=yes" : ""),
     );
@@ -36,6 +39,8 @@ function printStatus(state) {
   out.push("dsh-purge 状态 / Status");
   out.push("  宿主 / surface " + (state.surface || "web"));
   out.push("  DSH_HOME      " + state.dsh_home);
+  out.push("  Activation    " + (state.patches_active ? "active"
+    : state.activation_pending ? "restart required (sealed desktop)" : "not fully applied"));
   if (state.desktop_install) out.push("  桌面安装       " + state.desktop_install);
   if (state.ai_base) {
     out.push("  插件根 / root  " + state.ai_base);
@@ -50,7 +55,7 @@ function printStatus(state) {
   out.push(`  注入文件       ${state.override_path}`);
   out.push(`  注入状态       ${state.override_status}`);
   out.push("");
-  out.push(`  补丁 ${state.patches_applied}/${state.patches_total || core.ALL_PATCHES.length} 已清洗, ${state.patches_pending} 待清洗, ${state.patches_na} 不适用, ${state.patches_skipped} 其他`);
+  out.push(`  补丁 ${state.patches_applied}/${state.patches_total ?? core.ALL_PATCHES.length} 已清洗, ${state.patches_pending} 待清洗, ${state.patches_na} 不适用, ${state.patches_skipped} 其他`);
   for (const p of core.ALL_PATCHES) {
     const s = state.patch_status[p.id] || "-";
     const mark = s === "applied" ? "✓" : s === "pending" ? "✗" : "·";
@@ -64,14 +69,22 @@ function printStatus(state) {
 }
 
 async function main() {
-  const mode = args.find((a) => ["--apply", "--revert", "--uninstall", "--status", "--edit", "--help"].includes(a));
+  const mode = args.find((a) => ["--apply", "--revert", "--uninstall", "--status", "--doctor", "--edit", "--help"].includes(a));
   const wantBase = argValue("--base");
   const wantSurface = argValue("--surface");
+  const wantRepo = argValue("--repo");
+  const wantJson = args.includes("--json");
+  const saveBaseline = args.includes("--save-baseline");
 
   if (mode === "--help" || args.includes("-h")) {
     console.log(`dsh-purge 用法:
   dsh-purge --status            显示状态（含多宿主清单）
   dsh-purge --status --base DIR  只报告指定 @deepseek-ai 目录
+  dsh-purge --status --json      Read-only JSON status
+  dsh-purge --doctor            Read-only health checks; exit 1 on failure
+  dsh-purge --doctor --json      JSON health checks, with state and check rows
+  dsh-purge --doctor --repo DIR  Verify installed packages resolve to this checkout
+  dsh-purge --doctor --save-baseline  Save a healthy host baseline
   dsh-purge --surface desktop   强制按桌面宿主解析（默认自动判断）
   dsh-purge --apply             应用全部清洗（提示词+代码+shim+override）
   dsh-purge --revert            回滚还原
@@ -81,13 +94,51 @@ async function main() {
     return;
   }
 
-  // CLI 在 node.exe 里跑，surface 永远是 web；桌面树要靠 discover 找。
+  if (wantJson && mode && !["--status", "--doctor"].includes(mode)) {
+    console.log(JSON.stringify({ ok: false, error: "--json is supported only for --status and --doctor" }));
+    process.exitCode = 2;
+    return;
+  }
+  for (const name of ["--base", "--surface", "--repo"]) {
+    if (args.some((arg) => arg === name || arg.startsWith(name + "=")) && !argValue(name)) {
+      throw new Error(`${name} requires a value`);
+    }
+  }
+  if (wantSurface && !["web", "desktop"].includes(wantSurface)) throw new Error("--surface must be web or desktop");
+  if (mode !== "--doctor" && (wantRepo || saveBaseline)) throw new Error("--repo and --save-baseline require --doctor");
+
+  // Explicit caller choices must take precedence over automatic running-host selection.
   if (wantSurface) process.env.DSH_SURFACE = wantSurface;
   if (wantBase) process.env.DSH_BASE = wantBase;
 
-  const state = await core.gatherState({ base: wantBase, hosts: true, discover: true });
+  const state = await core.gatherState({ base: wantBase, surface: wantSurface, hosts: true, discover: true });
 
-  if (args.includes("--json")) {
+  if (mode === "--doctor") {
+    const home = state.dsh_home;
+    const linkPaths = [];
+    if (wantRepo) {
+      linkPaths.push(path.join(home, "plugins", "dsh-purge"));
+      const profile = state.surface === "desktop" ? "desktop" : "web";
+      const profileFile = path.join(home, "profiles", profile, "package.json");
+      let installed = path.join(path.dirname(profileFile), "node_modules", "dsh-purge");
+      try { installed = path.dirname(createRequire(profileFile).resolve("dsh-purge/package.json")); } catch { /* Report the missing installation. */ }
+      linkPaths.push(installed);
+    }
+    const baseline = saveBaseline ? null : doctor.readBaseline(home);
+    const result = doctor.runChecks({ state, repo: wantRepo, linkPaths, baseline });
+    let baselineSaved = null;
+    if (saveBaseline && result.ok) {
+      baselineSaved = doctor.writeBaseline(home, { ai_base: state.ai_base, surface: state.surface, applied: state.patches_applied });
+    }
+    if (wantJson) console.log(JSON.stringify({ ...result, state, baseline_saved: baselineSaved }, null, 2));
+    else {
+      for (const row of result.rows) console.log(`${row.ok ? "[OK]" : "[FAIL]"} ${row.id}: ${row.detail}`);
+      if (baselineSaved) console.log(`Baseline saved: ${baselineSaved}`);
+    }
+    process.exitCode = result.ok ? 0 : 1;
+    return;
+  }
+  if (wantJson) {
     console.log(JSON.stringify(state, null, 2));
     return;
   }

@@ -1,3 +1,24 @@
+# 1.1.74
+
+- Fix desktop activation reporting: written patches and zero pending items no longer imply that the running host is patched.
+- Report patches_active and activation_pending. A sealed app.asar keeps activation pending until a complete restart switches to the patched extraction.
+- Keep the activation/restart warning visible even when the extracted host directory already exists.
+- Do not mark a sealed host as clean merely because its extracted copy has patch markers.
+- Apply responses now distinguish restart_required from restarting; they no longer claim that an archive swap has already started.
+- Add a temporary desktop fixture regression to the release checks.
+- Preserve community updates, evidence tracking, upstream rewind, knowledge base, skills, and Windows rollback protections.
+
+# 1.1.73
+
+- Community release for DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2.
+- Built-in version checks, downloads, profile specs, and Git updates now use realMisakaMikoto/dsh-purge.
+- Remove geographic/bank target gates and the obsolete own-server exception settings/API.
+- Port the upstream 1.1.74 evidence ledger, eight evidence/unknown tools, and preset instructions.
+- Port upstream step/turn rewind through new sessions, with source archival and selected-turn subagent handling.
+- Preserve the knowledge base, 23 redteam skills, existing prompt/core patches, and Windows runtime/junction rollback protections.
+- Include scoped upstream Apache-2.0 notices; archive updates now carry preset and NOTICE files.
+- Validation: 10 evidence/rewind groups, community updater integration checks, 18 prompt/backup checks, and 34 Windows rollback checks.
+
 # 1.1.72
 
 ## 中文
